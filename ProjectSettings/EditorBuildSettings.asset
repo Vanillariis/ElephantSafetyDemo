@@ -4,6 +4,10 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/ElephantSafety/Scenes/Demo.unity
+    guid: 07259d58ec1d9c5439b71bc404f6cafc
   m_configObjects:
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: a28a133dfbe4c0549817fa1d40169b9d, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 129f598d2b259c44b90f8c7a7811770e, type: 2}

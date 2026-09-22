@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e314dfef9af0904e80129bcc0a79361, type: 3}
   m_Name: HandTracking Standalone
   m_EditorClassIdentifier: Unity.XR.Hands::UnityEngine.XR.Hands.OpenXR.HandTracking
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
@@ -195,7 +195,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3aced3429e5911458f4da2dac9d0f29, type: 3}
   m_Name: MetaHandTrackingAim Android
   m_EditorClassIdentifier: Unity.XR.Hands::UnityEngine.XR.Hands.OpenXR.MetaHandTrackingAim
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Meta Hand Tracking Aim
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.metahandtrackingaim
@@ -217,7 +217,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a24be4b5ebfe5f4d8ed1de9b25cb7aa, type: 3}
   m_Name: HandCommonPosesInteraction Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandCommonPosesInteraction
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Poses
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteractionposes
@@ -438,7 +438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a24be4b5ebfe5f4d8ed1de9b25cb7aa, type: 3}
   m_Name: HandCommonPosesInteraction Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandCommonPosesInteraction
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Poses
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteractionposes
@@ -670,7 +670,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeef8d85de8db242bdda70cc7ff5acd, type: 3}
   m_Name: OculusTouchControllerProfile Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.OculusTouchControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Oculus Touch Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.oculustouch
@@ -692,7 +692,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeef8d85de8db242bdda70cc7ff5acd, type: 3}
   m_Name: OculusTouchControllerProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.OculusTouchControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Oculus Touch Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.oculustouch
@@ -765,7 +765,7 @@ MonoBehaviour:
   - {fileID: -3590242812619116395}
   customLoaderName: 
   m_renderMode: 1
-  m_latencyOptimization: 0
+  m_latencyOptimization: 1
   m_autoColorSubmissionMode: 1
   m_colorSubmissionModes:
     m_List: 00000000i
@@ -775,7 +775,7 @@ MonoBehaviour:
   m_symmetricProjection: 0
   m_optimizeMultiviewRenderRegions: 0
   m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 0
+  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 1
   m_useOpenXRPredictedTime: 1
 --- !u!114 &2098741794123600260
@@ -906,7 +906,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5019471fb2174e5c852ecd4047163007, type: 3}
   m_Name: HandInteractionProfile Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteraction
@@ -1053,7 +1053,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e314dfef9af0904e80129bcc0a79361, type: 3}
   m_Name: HandTracking Android
   m_EditorClassIdentifier: Unity.XR.Hands::UnityEngine.XR.Hands.OpenXR.HandTracking
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
@@ -1076,7 +1076,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f647cc0545697264a9878224faada6d5, type: 3}
   m_Name: MetaQuestFeature Android
   m_EditorClassIdentifier: Unity.XR.OpenXR.Features.MetaQuestSupport::UnityEngine.XR.OpenXR.Features.MetaQuestSupport.MetaQuestFeature
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Meta Quest Support
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.metaquest
@@ -1111,7 +1111,7 @@ MonoBehaviour:
   lateLatchingDebug: 0
   optimizeMultiviewRenderRegions: 0
   m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegions: 0
+  m_hasMigratedMultiviewRenderRegions: 1
   spacewarpMotionVectorTextureFormat: 0
 --- !u!114 &7489645287834432299
 MonoBehaviour:
@@ -1150,32 +1150,32 @@ MonoBehaviour:
   m_Name: Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.OpenXRSettings
   features:
-  - {fileID: 9027143454889941643}
-  - {fileID: -3736215269718516260}
-  - {fileID: 5102064995897845634}
-  - {fileID: -2105952520874077853}
-  - {fileID: -8478190089191224057}
-  - {fileID: -1068302115679622401}
-  - {fileID: 370934901643865580}
-  - {fileID: -6403273727199825540}
-  - {fileID: 5050209060996755904}
-  - {fileID: 2661251085301036625}
-  - {fileID: -8158953262232349638}
   - {fileID: -442287975722674482}
-  - {fileID: -2706142252236444619}
-  - {fileID: -4201950626244655834}
-  - {fileID: -1154623394893128334}
-  - {fileID: 1114351379312340881}
-  - {fileID: -16781624627841777}
-  - {fileID: -5902134703710277197}
-  - {fileID: 810434389542575413}
+  - {fileID: -2105952520874077853}
+  - {fileID: -8158953262232349638}
   - {fileID: 5848952095279170476}
-  - {fileID: -6278578289174377810}
-  - {fileID: -1822649378841355191}
-  - {fileID: 8680532522160975887}
-  - {fileID: 4727894061396423743}
   - {fileID: -5679429688886761638}
+  - {fileID: 2661251085301036625}
+  - {fileID: -4201950626244655834}
+  - {fileID: 4727894061396423743}
+  - {fileID: -6403273727199825540}
+  - {fileID: 370934901643865580}
+  - {fileID: -1154623394893128334}
+  - {fileID: -2706142252236444619}
+  - {fileID: 8680532522160975887}
+  - {fileID: -1068302115679622401}
+  - {fileID: -5902134703710277197}
+  - {fileID: -16781624627841777}
+  - {fileID: 5102064995897845634}
   - {fileID: 1463050411839649941}
+  - {fileID: -6278578289174377810}
+  - {fileID: -3736215269718516260}
+  - {fileID: 1114351379312340881}
+  - {fileID: 810434389542575413}
+  - {fileID: 9027143454889941643}
+  - {fileID: 5050209060996755904}
+  - {fileID: -1822649378841355191}
+  - {fileID: -8478190089191224057}
   customLoaderName: 
   m_renderMode: 1
   m_latencyOptimization: 0
@@ -1188,7 +1188,7 @@ MonoBehaviour:
   m_symmetricProjection: 0
   m_optimizeMultiviewRenderRegions: 0
   m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 0
+  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 1
   m_useOpenXRPredictedTime: 1
 --- !u!114 &7799864920681972797
@@ -1272,7 +1272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5019471fb2174e5c852ecd4047163007, type: 3}
   m_Name: HandInteractionProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteraction
