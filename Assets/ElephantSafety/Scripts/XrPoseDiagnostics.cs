@@ -11,6 +11,8 @@ namespace ElephantSafety
     /// TEMPORARY: logs where the head pose is actually coming from, once a second.
     /// Spawns itself in Play mode so it needs no scene changes. Delete when the rig is sorted.
     /// </summary>
+    
+    #if false 
     public class XrPoseDiagnostics : MonoBehaviour
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -139,4 +141,5 @@ namespace ElephantSafety
             }
         }
     }
+    #endif 
 }
