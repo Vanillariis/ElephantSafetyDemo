@@ -1,12 +1,12 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Hands;
 
 namespace ElephantSafety
 {
     /// <summary>
-    /// Draws a stylised hand (spheres + cylinders on every XR Hands joint) and a two-bone arm
-    /// that reaches from an estimated shoulder to the tracked wrist.
+    /// Shows a human hand and arm for one tracked hand: the skinned hand mesh from the XR Hands
+    /// "HandVisualizer" sample, plus a generated arm that tapers from an estimated shoulder,
+    /// through the elbow, to the tracked wrist.
     /// Place this on a GameObject under the XR Origin's Camera Offset, next to an <see cref="XRHandTrackingEvents"/>.
     /// </summary>
     [RequireComponent(typeof(XRHandTrackingEvents))]
@@ -23,78 +23,36 @@ namespace ElephantSafety
         [SerializeField] float m_ForearmLength = 0.27f;
         [SerializeField] float m_ShoulderWidth = 0.19f;
         [SerializeField] float m_ShoulderDrop = 0.24f;
-        [SerializeField] float m_UpperArmRadius = 0.042f;
-        [SerializeField] float m_ForearmRadius = 0.032f;
 
-        [Header("Hand proportions (metres)")]
-        [SerializeField] float m_KnuckleRadius = 0.0105f;
-        [SerializeField] float m_TipRadius = 0.0075f;
+        [Header("Arm thickness (radius in metres, shoulder to wrist)")]
+        [SerializeField] float m_ShoulderRadius = 0.055f;
+        [SerializeField] float m_ElbowRadius = 0.043f;
+        [SerializeField] float m_WristRadius = 0.028f;
 
-        static readonly (XRHandJointID from, XRHandJointID to)[] s_Bones =
-        {
-            (XRHandJointID.ThumbMetacarpal, XRHandJointID.ThumbProximal),
-            (XRHandJointID.ThumbProximal, XRHandJointID.ThumbDistal),
-            (XRHandJointID.ThumbDistal, XRHandJointID.ThumbTip),
-
-            (XRHandJointID.IndexProximal, XRHandJointID.IndexIntermediate),
-            (XRHandJointID.IndexIntermediate, XRHandJointID.IndexDistal),
-            (XRHandJointID.IndexDistal, XRHandJointID.IndexTip),
-
-            (XRHandJointID.MiddleProximal, XRHandJointID.MiddleIntermediate),
-            (XRHandJointID.MiddleIntermediate, XRHandJointID.MiddleDistal),
-            (XRHandJointID.MiddleDistal, XRHandJointID.MiddleTip),
-
-            (XRHandJointID.RingProximal, XRHandJointID.RingIntermediate),
-            (XRHandJointID.RingIntermediate, XRHandJointID.RingDistal),
-            (XRHandJointID.RingDistal, XRHandJointID.RingTip),
-
-            (XRHandJointID.LittleProximal, XRHandJointID.LittleIntermediate),
-            (XRHandJointID.LittleIntermediate, XRHandJointID.LittleDistal),
-            (XRHandJointID.LittleDistal, XRHandJointID.LittleTip),
-
-            // Palm fan: wrist to the thumb base and every knuckle, plus the knuckle row.
-            (XRHandJointID.Wrist, XRHandJointID.ThumbMetacarpal),
-            (XRHandJointID.Wrist, XRHandJointID.IndexProximal),
-            (XRHandJointID.Wrist, XRHandJointID.MiddleProximal),
-            (XRHandJointID.Wrist, XRHandJointID.RingProximal),
-            (XRHandJointID.Wrist, XRHandJointID.LittleProximal),
-            (XRHandJointID.IndexProximal, XRHandJointID.MiddleProximal),
-            (XRHandJointID.MiddleProximal, XRHandJointID.RingProximal),
-            (XRHandJointID.RingProximal, XRHandJointID.LittleProximal),
-        };
+        const int k_Sides = 14;      // ring resolution around the arm
+        const int k_Samples = 14;    // rings along the arm
 
         XRHandTrackingEvents m_TrackingEvents;
         Transform m_VisualRoot;
-        Material m_MaterialInstance;
-        Color m_BaseColor;
+        GameObject m_HandInstance;
+        Mesh m_ArmMesh;
+        Vector3[] m_ArmVertices;
+        Vector3[] m_ArmNormals;
 
-        readonly Dictionary<XRHandJointID, Transform> m_JointSpheres = new();
-        readonly List<Transform> m_BoneCylinders = new();
-        readonly Vector3[] m_JointPositions = new Vector3[XRHandJointID.EndMarker.ToIndex()];
-        readonly bool[] m_JointValid = new bool[XRHandJointID.EndMarker.ToIndex()];
-
-        Transform m_Shoulder, m_Elbow, m_UpperArm, m_Forearm, m_PalmPad;
-
-        public Transform head
-        {
-            get => m_Head;
-            set => m_Head = value;
-        }
-
-        public Material skinMaterial
-        {
-            get => m_SkinMaterial;
-            set => m_SkinMaterial = value;
-        }
+        public Transform head { get => m_Head; set => m_Head = value; }
+        public Material skinMaterial { get => m_SkinMaterial; set => m_SkinMaterial = value; }
 
         void Awake()
         {
             m_TrackingEvents = GetComponent<XRHandTrackingEvents>();
-            m_MaterialInstance = m_SkinMaterial != null ? new Material(m_SkinMaterial) : new Material(Shader.Find("Standard"));
-            m_BaseColor = m_MaterialInstance.color;
             if (m_Head == null && Camera.main != null)
                 m_Head = Camera.main.transform;
-            BuildVisuals();
+
+            m_VisualRoot = new GameObject("Visual").transform;
+            m_VisualRoot.SetParent(transform, false);
+
+            SpawnHandMesh();
+            BuildArm();
             SetVisible(false);
         }
 
@@ -112,84 +70,84 @@ namespace ElephantSafety
 
         void OnDestroy()
         {
-            if (m_MaterialInstance != null)
-                Destroy(m_MaterialInstance);
+            if (m_ArmMesh != null)
+                Destroy(m_ArmMesh);
         }
 
-        /// <summary>Tints the whole hand and arm, e.g. as feedback when a pose is detected.</summary>
-        public void SetHighlight(Color color, float amount)
+        /// <summary>The sample's hand prefab drives itself from the subsystem, so it just needs parenting.</summary>
+        void SpawnHandMesh()
         {
-            if (m_MaterialInstance != null)
-                m_MaterialInstance.color = Color.Lerp(m_BaseColor, color, amount);
-        }
+            var prefabs = HandVisualPrefabs.Load();
+            var prefab = prefabs == null
+                ? null
+                : m_TrackingEvents.handedness == Handedness.Left ? prefabs.leftHandPrefab : prefabs.rightHandPrefab;
 
-        void BuildVisuals()
-        {
-            m_VisualRoot = new GameObject("Visual").transform;
-            m_VisualRoot.SetParent(transform, false);
-
-            for (var id = XRHandJointID.BeginMarker; id < XRHandJointID.EndMarker; id++)
+            if (prefab == null)
             {
-                if (id == XRHandJointID.Palm)
-                    continue;
-                var sphere = CreatePart(PrimitiveType.Sphere, id.ToString());
-                sphere.localScale = Vector3.one * (JointRadius(id) * 2f);
-                m_JointSpheres[id] = sphere;
+                Debug.LogWarning($"No hand mesh prefab for {m_TrackingEvents.handedness}. " +
+                                 "Run Elephant Safety > Upgrade Hands And Clap to import them.", this);
+                return;
             }
 
-            foreach (var bone in s_Bones)
-                m_BoneCylinders.Add(CreatePart(PrimitiveType.Cylinder, $"{bone.from}-{bone.to}"));
+            m_HandInstance = Instantiate(prefab, m_VisualRoot);
+            m_HandInstance.name = $"{m_TrackingEvents.handedness} Hand Mesh";
+            m_HandInstance.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-            m_PalmPad = CreatePart(PrimitiveType.Sphere, "Palm Pad");
-            m_Shoulder = CreatePart(PrimitiveType.Sphere, "Shoulder");
-            m_Elbow = CreatePart(PrimitiveType.Sphere, "Elbow");
-            m_UpperArm = CreatePart(PrimitiveType.Cylinder, "Upper Arm");
-            m_Forearm = CreatePart(PrimitiveType.Cylinder, "Forearm");
-            m_Shoulder.localScale = Vector3.one * (m_UpperArmRadius * 2.1f);
-            m_Elbow.localScale = Vector3.one * (Mathf.Lerp(m_UpperArmRadius, m_ForearmRadius, 0.5f) * 2f);
+            // The sample hands ship with their own material; use the arm's skin so the two match.
+            if (m_SkinMaterial != null)
+            {
+                foreach (var renderer in m_HandInstance.GetComponentsInChildren<Renderer>(true))
+                {
+                    renderer.sharedMaterial = m_SkinMaterial;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
         }
 
-        Transform CreatePart(PrimitiveType type, string partName)
+        void BuildArm()
         {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = partName;
-            Destroy(go.GetComponent<Collider>());
-            go.GetComponent<MeshRenderer>().sharedMaterial = m_MaterialInstance;
+            var go = new GameObject("Arm");
             go.transform.SetParent(m_VisualRoot, false);
-            return go.transform;
-        }
 
-        float JointRadius(XRHandJointID id)
-        {
-            switch (id)
+            m_ArmMesh = new Mesh { name = "Arm", indexFormat = UnityEngine.Rendering.IndexFormat.UInt16 };
+            m_ArmMesh.MarkDynamic();
+
+            var vertexCount = k_Samples * k_Sides + 2; // + centre points capping each end
+            m_ArmVertices = new Vector3[vertexCount];
+            m_ArmNormals = new Vector3[vertexCount];
+
+            var triangles = new int[(k_Samples - 1) * k_Sides * 6 + k_Sides * 6];
+            var t = 0;
+            for (var ring = 0; ring < k_Samples - 1; ring++)
             {
-                case XRHandJointID.Wrist:
-                    return m_ForearmRadius * 0.85f;
-                case XRHandJointID.ThumbMetacarpal:
-                    return m_KnuckleRadius * 1.25f;
-                case XRHandJointID.ThumbTip:
-                case XRHandJointID.IndexTip:
-                case XRHandJointID.MiddleTip:
-                case XRHandJointID.RingTip:
-                case XRHandJointID.LittleTip:
-                    return m_TipRadius;
-                case XRHandJointID.ThumbDistal:
-                case XRHandJointID.IndexDistal:
-                case XRHandJointID.MiddleDistal:
-                case XRHandJointID.RingDistal:
-                case XRHandJointID.LittleDistal:
-                    return Mathf.Lerp(m_TipRadius, m_KnuckleRadius, 0.35f);
-                case XRHandJointID.IndexIntermediate:
-                case XRHandJointID.MiddleIntermediate:
-                case XRHandJointID.RingIntermediate:
-                case XRHandJointID.LittleIntermediate:
-                    return Mathf.Lerp(m_TipRadius, m_KnuckleRadius, 0.7f);
-                case XRHandJointID.LittleMetacarpal:
-                case XRHandJointID.LittleProximal:
-                    return m_KnuckleRadius * 0.85f;
-                default:
-                    return m_KnuckleRadius;
+                for (var side = 0; side < k_Sides; side++)
+                {
+                    var next = (side + 1) % k_Sides;
+                    var a = ring * k_Sides + side;
+                    var b = ring * k_Sides + next;
+                    var c = (ring + 1) * k_Sides + side;
+                    var d = (ring + 1) * k_Sides + next;
+                    triangles[t++] = a; triangles[t++] = c; triangles[t++] = b;
+                    triangles[t++] = b; triangles[t++] = c; triangles[t++] = d;
+                }
             }
+
+            var shoulderCap = k_Samples * k_Sides;
+            var wristCap = shoulderCap + 1;
+            for (var side = 0; side < k_Sides; side++)
+            {
+                var next = (side + 1) % k_Sides;
+                triangles[t++] = shoulderCap; triangles[t++] = side; triangles[t++] = next;
+                var last = (k_Samples - 1) * k_Sides;
+                triangles[t++] = wristCap; triangles[t++] = last + next; triangles[t++] = last + side;
+            }
+
+            m_ArmMesh.vertices = m_ArmVertices;
+            m_ArmMesh.triangles = triangles;
+
+            go.AddComponent<MeshFilter>().sharedMesh = m_ArmMesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = m_SkinMaterial != null ? m_SkinMaterial : new Material(Shader.Find("Standard"));
         }
 
         void SetVisible(bool visible)
@@ -208,46 +166,12 @@ namespace ElephantSafety
             }
 
             SetVisible(true);
-
-            // Joint poses are in XR Origin session space; this object sits at identity under the Camera Offset.
-            for (var id = XRHandJointID.BeginMarker; id < XRHandJointID.EndMarker; id++)
-            {
-                var index = id.ToIndex();
-                m_JointValid[index] = hand.GetJoint(id).TryGetPose(out var pose);
-                if (!m_JointValid[index])
-                    continue;
-
-                m_JointPositions[index] = pose.position;
-                if (m_JointSpheres.TryGetValue(id, out var sphere))
-                    sphere.localPosition = pose.position;
-
-                if (id == XRHandJointID.Palm)
-                {
-                    m_PalmPad.localPosition = pose.position;
-                    m_PalmPad.localRotation = pose.rotation;
-                    m_PalmPad.localScale = new Vector3(0.075f, 0.026f, 0.08f);
-                }
-            }
-
-            for (var i = 0; i < s_Bones.Length; i++)
-            {
-                var (from, to) = s_Bones[i];
-                var valid = m_JointValid[from.ToIndex()] && m_JointValid[to.ToIndex()];
-                if (m_BoneCylinders[i].gameObject.activeSelf != valid)
-                    m_BoneCylinders[i].gameObject.SetActive(valid);
-                if (!valid)
-                    continue;
-
-                var radius = from == XRHandJointID.Wrist ? m_KnuckleRadius * 1.3f : Mathf.Min(JointRadius(from), JointRadius(to));
-                PlaceSegment(m_BoneCylinders[i], m_JointPositions[from.ToIndex()], m_JointPositions[to.ToIndex()], radius);
-            }
-
             UpdateArm(hand);
         }
 
         void UpdateArm(XRHand hand)
         {
-            if (m_Head == null || !hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out var wristPose))
+            if (m_Head == null || m_ArmMesh == null || !hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out var wristPose))
                 return;
 
             var space = transform.parent;
@@ -260,38 +184,76 @@ namespace ElephantSafety
             var side = hand.handedness == Handedness.Left ? -1f : 1f;
 
             var shoulder = headPos + bodyYaw * new Vector3(side * m_ShoulderWidth, -m_ShoulderDrop, -0.06f);
-
-            // End the forearm slightly behind the wrist joint so it tucks into the hand.
-            var forearmEnd = wristPose.position - wristPose.forward * 0.015f;
+            // Sink the wrist end slightly into the hand mesh so there is no seam at the cuff.
+            var wrist = wristPose.position - wristPose.forward * 0.02f;
 
             // Two-bone IK with the elbow hanging down, out and slightly back.
-            var toWrist = forearmEnd - shoulder;
+            var toWrist = wrist - shoulder;
             var a = m_UpperArmLength;
             var b = m_ForearmLength;
             var reach = Mathf.Clamp(toWrist.magnitude, Mathf.Abs(a - b) + 1e-3f, (a + b) * 0.999f);
             var dir = toWrist.sqrMagnitude > 1e-6f ? toWrist.normalized : bodyYaw * Vector3.forward;
             var along = (a * a - b * b + reach * reach) / (2f * reach);
             var bendHeight = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
-
             var bendDir = Vector3.ProjectOnPlane(bodyYaw * new Vector3(side * 0.6f, -1f, -0.35f), dir);
             if (bendDir.sqrMagnitude < 1e-6f)
                 bendDir = Vector3.down;
             var elbow = shoulder + dir * along + bendDir.normalized * bendHeight;
 
-            m_Shoulder.localPosition = shoulder;
-            m_Elbow.localPosition = elbow;
-            PlaceSegment(m_UpperArm, shoulder, elbow, m_UpperArmRadius);
-            PlaceSegment(m_Forearm, elbow, forearmEnd, m_ForearmRadius);
+            UpdateArmMesh(shoulder, elbow, wrist);
         }
 
-        static void PlaceSegment(Transform cylinder, Vector3 from, Vector3 to, float radius)
+        /// <summary>Sweeps a tapered tube along shoulder - elbow - wrist, smoothed so the elbow bends rather than kinks.</summary>
+        void UpdateArmMesh(Vector3 shoulder, Vector3 elbow, Vector3 wrist)
         {
-            var delta = to - from;
-            var length = delta.magnitude;
-            cylinder.localPosition = (from + to) * 0.5f;
-            cylinder.localRotation = length > 1e-5f ? Quaternion.FromToRotation(Vector3.up, delta / length) : Quaternion.identity;
-            // Unity's cylinder mesh is 2 units tall and 1 unit wide.
-            cylinder.localScale = new Vector3(radius * 2f, length * 0.5f, radius * 2f);
+            // A stable reference direction stops the rings twisting as the arm moves.
+            var reference = Vector3.Cross(elbow - shoulder, wrist - elbow);
+            if (reference.sqrMagnitude < 1e-8f)
+                reference = Vector3.up;
+            reference.Normalize();
+
+            for (var i = 0; i < k_Samples; i++)
+            {
+                var t = i / (float)(k_Samples - 1);
+                var centre = QuadraticBezier(shoulder, elbow, wrist, t);
+                var ahead = QuadraticBezier(shoulder, elbow, wrist, Mathf.Min(1f, t + 0.01f));
+                var behind = QuadraticBezier(shoulder, elbow, wrist, Mathf.Max(0f, t - 0.01f));
+                var tangent = (ahead - behind).normalized;
+
+                var right = Vector3.Cross(reference, tangent).normalized;
+                var up = Vector3.Cross(tangent, right).normalized;
+
+                // Upper arm is thickest just below the shoulder; the forearm tapers to the wrist.
+                var radius = t < 0.5f
+                    ? Mathf.Lerp(m_ShoulderRadius, m_ElbowRadius, Mathf.SmoothStep(0f, 1f, t * 2f))
+                    : Mathf.Lerp(m_ElbowRadius, m_WristRadius, Mathf.SmoothStep(0f, 1f, (t - 0.5f) * 2f));
+
+                for (var s = 0; s < k_Sides; s++)
+                {
+                    var angle = s / (float)k_Sides * Mathf.PI * 2f;
+                    // Slightly oval, like a real arm rather than a pipe.
+                    var normal = (right * (Mathf.Cos(angle) * 1.05f) + up * (Mathf.Sin(angle) * 0.9f)).normalized;
+                    var index = i * k_Sides + s;
+                    m_ArmVertices[index] = centre + normal * radius;
+                    m_ArmNormals[index] = normal;
+                }
+            }
+
+            var capA = k_Samples * k_Sides;
+            m_ArmVertices[capA] = shoulder;
+            m_ArmNormals[capA] = (shoulder - elbow).normalized;
+            m_ArmVertices[capA + 1] = wrist;
+            m_ArmNormals[capA + 1] = (wrist - elbow).normalized;
+
+            m_ArmMesh.vertices = m_ArmVertices;
+            m_ArmMesh.normals = m_ArmNormals;
+            m_ArmMesh.RecalculateBounds();
+        }
+
+        static Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
+        {
+            var u = 1f - t;
+            return u * u * p0 + 2f * u * t * p1 + t * t * p2;
         }
     }
 }

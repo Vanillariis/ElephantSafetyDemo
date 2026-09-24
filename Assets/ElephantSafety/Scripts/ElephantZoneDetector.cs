@@ -26,6 +26,9 @@ public class ElephantZoneDetector : MonoBehaviour
     private ElephantZone currentZone = ElephantZone.Outside;
     private ElephantZone previousZone = ElephantZone.Outside;
 
+    /// <summary>Which zone the player is in right now. Read by ElephantFlee to gate the clap.</summary>
+    public ElephantZone CurrentZone => currentZone;
+
     private void Update()
     {
         //Debug.Log("Zone detector is running!");

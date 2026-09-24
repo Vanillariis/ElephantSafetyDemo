@@ -24,8 +24,6 @@ namespace ElephantSafety
 
             public XRHandShape handShape;
 
-            public Color highlight = Color.cyan;
-
             public bool Check(XRHandJointsUpdatedEventArgs args)
             {
                 if (handPose != null)
@@ -47,12 +45,6 @@ namespace ElephantSafety
         float m_CheckInterval = 0.05f;
 
         [SerializeField]
-        TextMesh m_Label;
-
-        [SerializeField]
-        HandArmVisual m_Visual;
-
-        [SerializeField]
         PoseChangedEvent m_PoseChanged = new();
 
         XRHandTrackingEvents m_TrackingEvents;
@@ -60,21 +52,8 @@ namespace ElephantSafety
         PoseEntry m_Current;
         float m_CandidateSince;
         float m_LastCheckTime;
-        float m_Highlight;
 
         public List<PoseEntry> poses => m_Poses;
-
-        public TextMesh label
-        {
-            get => m_Label;
-            set => m_Label = value;
-        }
-
-        public HandArmVisual visual
-        {
-            get => m_Visual;
-            set => m_Visual = value;
-        }
 
         public PoseChangedEvent poseChanged => m_PoseChanged;
 
@@ -99,26 +78,14 @@ namespace ElephantSafety
             m_TrackingEvents.trackingChanged.RemoveListener(OnTrackingChanged);
         }
 
-        void Update()
-        {
-            var target = m_Current != null ? 0.55f : 0f;
-            m_Highlight = Mathf.MoveTowards(m_Highlight, target, Time.deltaTime * 4f);
-            if (m_Visual != null)
-                m_Visual.SetHighlight(m_Current?.highlight ?? Color.white, m_Highlight);
-        }
-
         void OnTrackingChanged(bool tracked)
         {
-            if (m_Label != null)
-                m_Label.gameObject.SetActive(tracked);
             if (!tracked)
                 SetCurrent(null);
         }
 
         void OnJointsUpdated(XRHandJointsUpdatedEventArgs args)
         {
-            UpdateLabelTransform(args.hand);
-
             if (Time.unscaledTime - m_LastCheckTime < m_CheckInterval)
                 return;
             m_LastCheckTime = Time.unscaledTime;
@@ -152,31 +119,11 @@ namespace ElephantSafety
             var poseName = entry?.displayName;
             var handedness = m_TrackingEvents != null ? m_TrackingEvents.handedness : Handedness.Invalid;
 
-            if (m_Label != null)
-            {
-                m_Label.text = poseName ?? "-";
-                m_Label.color = entry?.highlight ?? new Color(1f, 1f, 1f, 0.6f);
-            }
-
             if (poseName != null)
                 Debug.Log($"[HandPoseDetector] {handedness} hand: {poseName}");
 
             m_PoseChanged.Invoke(handedness, poseName);
         }
 
-        void UpdateLabelTransform(XRHand hand)
-        {
-            if (m_Label == null || !hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out var wrist))
-                return;
-
-            var space = transform.parent;
-            var worldPos = space != null ? space.TransformPoint(wrist.position) : wrist.position;
-            var labelTransform = m_Label.transform;
-            labelTransform.position = worldPos + Vector3.up * 0.14f;
-
-            var cam = Camera.main;
-            if (cam != null)
-                labelTransform.rotation = Quaternion.LookRotation(labelTransform.position - cam.transform.position, Vector3.up);
-        }
     }
 }

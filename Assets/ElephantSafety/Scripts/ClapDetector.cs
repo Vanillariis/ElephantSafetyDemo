@@ -30,13 +30,22 @@ namespace ElephantSafety
         [SerializeField, Range(0f, 1f), Tooltip("Maximum finger curl: a clap uses flat hands, not fists.")]
         float m_MaxFingerCurl = 0.6f;
 
+        [Header("Clap sequence")]
+        [SerializeField, Tooltip("How many claps in a row raise the sequence event - three claps is the scare-off signal.")]
+        int m_ClapsInSequence = 3;
+
+        [SerializeField, Tooltip("Maximum gap between claps before the count restarts.")]
+        float m_SequenceGap = 2f;
+
         [Header("Feedback")]
         [SerializeField] TextMesh m_Label;
-        [SerializeField] AudioSource m_AudioSource;
         [SerializeField] float m_LabelHoldTime = 1.2f;
 
         [SerializeField]
         UnityEvent<int> m_Clapped = new();
+
+        [SerializeField, Tooltip("Raised when the full sequence of claps is completed.")]
+        UnityEvent m_SequenceCompleted = new();
 
         struct HandSample
         {
@@ -52,9 +61,18 @@ namespace ElephantSafety
         float m_PreviousDistanceTime;
         bool m_HandsApart = true;
         float m_LabelHideTime;
-        AudioClip m_ClapClip;
+        int m_SequenceCount;
+        float m_LastClapTime = float.NegativeInfinity;
 
         public UnityEvent<int> clapped => m_Clapped;
+
+        /// <summary>Raised when <see cref="clapsInSequence"/> claps happen within the allowed gap.</summary>
+        public UnityEvent sequenceCompleted => m_SequenceCompleted;
+
+        /// <summary>How many claps of the current sequence have landed so far.</summary>
+        public int sequenceCount => m_SequenceCount;
+
+        public int clapsInSequence { get => m_ClapsInSequence; set => m_ClapsInSequence = value; }
 
         /// <summary>Number of claps detected since the scene started.</summary>
         public int clapCount { get; private set; }
@@ -62,11 +80,9 @@ namespace ElephantSafety
         public XRHandTrackingEvents leftHand { get => m_LeftHand; set => m_LeftHand = value; }
         public XRHandTrackingEvents rightHand { get => m_RightHand; set => m_RightHand = value; }
         public TextMesh label { get => m_Label; set => m_Label = value; }
-        public AudioSource audioSource { get => m_AudioSource; set => m_AudioSource = value; }
 
         void Awake()
         {
-            m_ClapClip = CreateClapClip();
             if (m_Label != null)
                 m_Label.gameObject.SetActive(false);
         }
@@ -208,17 +224,17 @@ namespace ElephantSafety
         void OnClap(Vector3 position)
         {
             clapCount++;
-            Debug.Log($"[ClapDetector] Clap #{clapCount}");
 
-            if (m_AudioSource != null && m_ClapClip != null)
-            {
-                m_AudioSource.transform.position = position;
-                m_AudioSource.PlayOneShot(m_ClapClip);
-            }
+            // Claps must follow each other closely to count as one sequence.
+            m_SequenceCount = Time.unscaledTime - m_LastClapTime <= m_SequenceGap ? m_SequenceCount + 1 : 1;
+            m_LastClapTime = Time.unscaledTime;
+            var completed = m_SequenceCount >= m_ClapsInSequence;
+
+            Debug.Log($"[ClapDetector] Clap #{clapCount} ({m_SequenceCount}/{m_ClapsInSequence})" + (completed ? " - sequence complete" : ""));
 
             if (m_Label != null)
             {
-                m_Label.text = clapCount > 1 ? $"CLAP x{clapCount}" : "CLAP!";
+                m_Label.text = completed ? "CLAP!" : $"CLAP {m_SequenceCount}/{m_ClapsInSequence}";
                 m_Label.transform.position = position + Vector3.up * 0.2f;
                 var cam = Camera.main;
                 if (cam != null)
@@ -228,28 +244,14 @@ namespace ElephantSafety
             }
 
             m_Clapped.Invoke(clapCount);
-        }
 
-        /// <summary>A short noise burst with a fast decay - enough of a clap without shipping an audio file.</summary>
-        static AudioClip CreateClapClip()
-        {
-            const int sampleRate = 44100;
-            const int samples = sampleRate / 5;
-            var data = new float[samples];
-            var random = new System.Random(11);
-
-            for (var i = 0; i < samples; i++)
+            if (completed)
             {
-                var t = i / (float)samples;
-                var attack = Mathf.Clamp01(i / (sampleRate * 0.002f));
-                var decay = Mathf.Exp(-14f * t);
-                var noise = (float)(random.NextDouble() * 2.0 - 1.0);
-                data[i] = noise * attack * decay * 0.7f;
+                m_SequenceCount = 0;
+                m_LastClapTime = float.NegativeInfinity;
+                m_SequenceCompleted.Invoke();
             }
-
-            var clip = AudioClip.Create("Clap", samples, 1, sampleRate, false);
-            clip.SetData(data, 0);
-            return clip;
         }
+
     }
 }

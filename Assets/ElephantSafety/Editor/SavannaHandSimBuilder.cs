@@ -622,13 +622,7 @@ namespace ElephantSafety.Editor
             visual.head = head;
             visual.skinMaterial = skin;
 
-            var labelGo = new GameObject("Pose Label");
-            labelGo.transform.SetParent(handGo.transform, false);
-            var label = CreateTextMesh(labelGo, "-", 0.0035f, 60);
-
             var detector = handGo.AddComponent<HandPoseDetector>();
-            detector.visual = visual;
-            detector.label = label;
             detector.poses.AddRange(poses);
             return events;
         }
@@ -644,17 +638,10 @@ namespace ElephantSafety.Editor
             var label = CreateTextMesh(labelGo, "CLAP!", 0.006f, 64);
             label.color = new Color(1f, 0.85f, 0.35f);
 
-            var audioSource = go.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 1f;
-            audioSource.minDistance = 0.5f;
-            audioSource.maxDistance = 20f;
-
             var clap = go.AddComponent<ClapDetector>();
             clap.leftHand = left;
             clap.rightHand = right;
             clap.label = label;
-            clap.audioSource = audioSource;
         }
 
         static List<HandPoseDetector.PoseEntry> CreateGestureAssets()
@@ -713,20 +700,20 @@ namespace ElephantSafety.Editor
             // Order matters: the first match wins, so more specific gestures go first.
             return new List<HandPoseDetector.PoseEntry>
             {
-                Entry("Thumbs Up", thumbsUp, null, new Color(0.3f, 0.9f, 0.4f)),
-                Entry("Thumbs Down", thumbsDown, null, new Color(0.95f, 0.35f, 0.3f)),
-                Entry("Thumb Out", null, thumb, new Color(0.6f, 0.85f, 0.5f)),
-                Entry("Fist", null, fist, new Color(0.9f, 0.3f, 0.25f)),
-                Entry("Point", null, point, new Color(0.3f, 0.65f, 1f)),
-                Entry("Shaka", null, shaka, new Color(1f, 0.6f, 0.2f)),
-                Entry("Pinch", null, pinch, new Color(0.75f, 0.45f, 1f)),
-                Entry("Grab", null, grab, new Color(1f, 0.85f, 0.25f)),
-                Entry("Open Palm", null, open, new Color(0.3f, 0.95f, 0.95f)),
+                Entry("Thumbs Up", thumbsUp, null),
+                Entry("Thumbs Down", thumbsDown, null),
+                Entry("Thumb Out", null, thumb),
+                Entry("Fist", null, fist),
+                Entry("Point", null, point),
+                Entry("Shaka", null, shaka),
+                Entry("Pinch", null, pinch),
+                Entry("Grab", null, grab),
+                Entry("Open Palm", null, open),
             };
         }
 
-        static HandPoseDetector.PoseEntry Entry(string name, XRHandPose pose, XRHandShape shape, Color color) =>
-            new() { displayName = name, handPose = pose, handShape = shape, highlight = color };
+        static HandPoseDetector.PoseEntry Entry(string name, XRHandPose pose, XRHandShape shape) =>
+            new() { displayName = name, handPose = pose, handShape = shape };
 
         static XRFingerShapeCondition.Target Target(XRFingerShapeType type, float desired, float lower, float upper) =>
             new() { shapeType = type, desired = desired, lowerTolerance = lower, upperTolerance = upper };
@@ -803,7 +790,7 @@ namespace ElephantSafety.Editor
                 "Gestures toggle on the right hand (hold Shift for left):\n" +
                 "N  Point      M  Pinch      K  Fist      -  Rest\n" +
                 "(first tap of a new gesture loads it, tap again to play)\n" +
-                "CLAP: swing both open palms together", 0.012f, 48);
+                "CLAP 3 TIMES to scare the elephant away", 0.012f, 48);
             text.color = new Color(1f, 0.93f, 0.8f);
         }
 
